@@ -43,12 +43,12 @@ app.get("/todos/:userEmail", async (req, res) => {
 //create new todo
 
 app.post("/todos", async (req, res) => {
-  const { user_email, title, progress, date } = req.body;
-  console.log(user_email, title, progress, date);
+  const { user_email, title, description, progress, date } = req.body;
+  console.log(user_email, title, description, progress, date);
   const id = uuidv4();
   try {
     const newToDo = await pool.query(
-      `INSERT INTO todos(id, user_email, title, progress,description, date) VALUES($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO todos(id, user_email, title, progress, description, date) VALUES($1, $2, $3, $4, $5, $6)`,
       [id, user_email, title, progress, description, date]
     );
     res.json(newToDo);
