@@ -5,6 +5,7 @@ CREATE TABLE todos (
     user_email VARCHAR(255),
     title VARCHAR(30),
     progress INT,
+    description TEXT,
     date VARCHAR(255)
 );
 
