@@ -61,7 +61,7 @@ app.post("/todos", async (req, res) => {
 
 app.put("/todos/:id", async (req, res) => {
   const { id } = req.params;
-  const { user_email, title, progress, date } = req.body;
+  const { user_email, title, description, progress, date } = req.body;
   try {
     const editToDo = await pool.query(
       "UPDATE todos SET user_email = $1, title = $2, progress = $3, description = $4, date = $5 WHERE id = $6;",
