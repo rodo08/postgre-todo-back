@@ -45,12 +45,18 @@ app.get("/todos/:userEmail", async (req, res) => {
 app.post("/todos", async (req, res) => {
   const { user_email, title, description, progress, date } = req.body;
   console.log(user_email, title, description, progress, date);
+  // Verificar si los campos están vacíos
+  if (!user_email || !title || !description || !progress || !date) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
   const id = uuidv4();
+
   try {
     const newToDo = await pool.query(
       `INSERT INTO todos(id, user_email, title, progress, description, date) VALUES($1, $2, $3, $4, $5, $6)`,
       [id, user_email, title, progress, description, date]
     );
+
     res.json(newToDo);
   } catch (err) {
     console.error(err);
@@ -94,6 +100,11 @@ app.post("/signup", async (req, res) => {
   const { email, password } = req.body;
   const salt = await bcrypt.genSaltSync(10);
   const hashedPassword = await bcrypt.hashSync(password, salt);
+
+  if (!email || !password) {
+    return res.status(400).json({ detail: "Email and Password are required" });
+  }
+
   try {
     const signUp = await pool.query(
       `INSERT INTO users (email, hashed_password) VALUES($1, $2)`,
@@ -114,6 +125,11 @@ app.post("/signup", async (req, res) => {
 //log in
 app.post("/login", async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ detail: "Email and Password are required" });
+  }
+
   try {
     const users = await pool.query(`SELECT * FROM users WHERE email = $1`, [
       email,
@@ -136,6 +152,12 @@ app.post("/login", async (req, res) => {
   } catch (err) {
     console.error(err);
   }
+});
+
+//middleware
+app.use((err, req, res, next) => {
+  console.error(err);
+  res.status(500).json({ detail: "Error interno del servidor" });
 });
 
 app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
