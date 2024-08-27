@@ -154,6 +154,39 @@ app.post("/login", async (req, res) => {
   }
 });
 
+app.post("/wallmessages", async (req, res) => {
+  const { user_email, message } = req.body;
+  console.log(user_email, message);
+
+  if (!message) {
+    return res.status(400).json({ detail: "Message is required" });
+  }
+
+  const id = uuidv4();
+
+  try {
+    const newMessage = await pool.query(
+      `INSERT INTO wallmessages(id, user_email, message, date) VALUES($1, $2, $3, $4)`,
+      [id, user_email, message, new Date()]
+    );
+
+    res.json(newMessage);
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+app.get("/wallmessages", async (req, res) => {
+  try {
+    const wallmessages = await pool.query(
+      "SELECT * FROM wallmessages ORDER BY date DESC"
+    );
+    res.json(wallmessages.rows);
+  } catch (err) {
+    console.error(err);
+  }
+});
+
 //middleware
 app.use((err, req, res, next) => {
   console.error(err);
