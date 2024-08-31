@@ -6,7 +6,9 @@ const app = express();
 const pool = require("./db.js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-
+const { GoogleGenerativeAI } = require("@google/generative-ai");
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEN_AI_KEY);
+require("dotenv").config();
 // test database connection
 async function testConnection() {
   try {
@@ -87,8 +89,7 @@ app.put("/todos/:id", async (req, res) => {
 
 app.delete("/todos/:id", async (req, res) => {
   const { id } = req.params;
-  const deleteToDo = await pool.query("DELETE FROM todos WHERE id = $1", [id]);
-  res.json(deleteToDo);
+
   try {
     const deleteToDo = await pool.query("DELETE FROM todos WHERE id = $1", [
       id,
@@ -189,6 +190,48 @@ app.get("/wallmessages", async (req, res) => {
   } catch (err) {
     console.error(err);
   }
+});
+
+//Gemini
+// app.post("/gemini", async (req, res) => {
+//   const { history, message } = req.body;
+
+//   // Verifica la estructura del historial
+//   const formattedHistory = history.map((item) => {
+//     if (typeof item.parts === "string") {
+//       return {
+//         ...item,
+//         parts: [item.parts], // Asegura que 'parts' sea un array
+//       };
+//     }
+//     return item;
+//   });
+
+//   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+//   try {
+//     const chat = model.startChat({
+//       history: formattedHistory,
+//       message: message,
+//     });
+
+//     const result = await model.generateContent(message);
+//     const text = await result.response.text();
+//     res.send(text);
+//   } catch (err) {
+//     console.error("Error al enviar el mensaje:", err);
+//     res.status(500).json({ detail: "Error al procesar el mensaje" });
+//   }
+// });
+app.post("/gemini", async (req, res) => {
+  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  const msg = req.body.message;
+
+  const result = await model.generateContent(msg);
+  const response = await result.response;
+  const text = response.text();
+  res.send(text);
 });
 
 //middleware
