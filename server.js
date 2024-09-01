@@ -224,14 +224,20 @@ app.get("/wallmessages", async (req, res) => {
 //   }
 // });
 app.post("/gemini", async (req, res) => {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-  const msg = req.body.message;
+    const msg = req.body.message;
 
-  const result = await model.generateContent(msg);
-  const response = await result.response;
-  const text = response.text();
-  res.send(text);
+    const result = await model.generateContent(msg);
+    const response = await result.response;
+    const text = await response.text();
+
+    res.send(text);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Internal Server Error");
+  }
 });
 
 //middleware
