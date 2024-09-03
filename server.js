@@ -192,37 +192,128 @@ app.get("/wallmessages", async (req, res) => {
   }
 });
 
-//Gemini
-// app.post("/gemini", async (req, res) => {
-//   const { history, message } = req.body;
+//get a message
+app.get("/wallmessages/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await pool.query(
+      "SELECT * FROM wallmessages WHERE id = $1",
+      [id]
+    );
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.log(error);
+  }
+});
 
-//   // Verifica la estructura del historial
-//   const formattedHistory = history.map((item) => {
-//     if (typeof item.parts === "string") {
-//       return {
-//         ...item,
-//         parts: [item.parts], // Asegura que 'parts' sea un array
-//       };
-//     }
-//     return item;
-//   });
+//like messages
 
-//   const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+app.post("/wallmessages/:id/like", async (req, res) => {
+  const { id } = req.params;
+  const { user_email } = req.body;
 
-//   try {
-//     const chat = model.startChat({
-//       history: formattedHistory,
-//       message: message,
-//     });
+  try {
+    const likeCheck = await pool.query(
+      "SELECT * FROM user_likes WHERE user_email = $1 AND message_id = $2",
+      [user_email, id]
+    );
 
-//     const result = await model.generateContent(message);
-//     const text = await result.response.text();
-//     res.send(text);
-//   } catch (err) {
-//     console.error("Error al enviar el mensaje:", err);
-//     res.status(500).json({ detail: "Error al procesar el mensaje" });
-//   }
-// });
+    if (likeCheck.rows.length > 0) {
+      await pool.query(
+        "DELETE FROM user_likes WHERE user_email = $1 AND message_id = $2",
+        [user_email, id]
+      );
+
+      await pool.query(
+        "UPDATE wallmessages SET like_count = like_count - 1 WHERE id = $1",
+        [id]
+      );
+
+      res.json({ message: "Like removed" });
+    } else {
+      await pool.query(
+        "INSERT INTO user_likes (user_email, message_id) VALUES ($1, $2)",
+        [user_email, id]
+      );
+
+      await pool.query(
+        "UPDATE wallmessages SET like_count = like_count + 1 WHERE id = $1",
+        [id]
+      );
+
+      res.json({ message: "Like added" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ detail: "Error processing like action" });
+  }
+});
+
+// Get like count for a message
+app.get("/wallmessages/:id/likes", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT like_count FROM wallmessages WHERE id = $1",
+      [id]
+    );
+
+    res.json({ like_count: result.rows[0].like_count });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ detail: "Error retrieving like count" });
+  }
+});
+
+// Create a new reply
+app.post("/replies", async (req, res) => {
+  const { message_id, user_email, reply_message } = req.body;
+
+  // Verificar si los campos obligatorios están presentes
+  if (!message_id || !user_email || !reply_message) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
+
+  const id = uuidv4(); // Generar un ID único para la respuesta
+
+  try {
+    const newReply = await pool.query(
+      `INSERT INTO replies (id, message_id, user_email, reply_message, date) VALUES ($1, $2, $3, $4, $5)`,
+      [id, message_id, user_email, reply_message, new Date()]
+    );
+
+    res
+      .status(201)
+      .json({ message: "Reply created successfully", reply: newReply.rows[0] });
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ error: "An error occurred while creating the reply" });
+  }
+});
+
+// Get all replies for a specific message
+app.get("/replies/:message_id", async (req, res) => {
+  const { message_id } = req.params;
+
+  try {
+    const replies = await pool.query(
+      "SELECT * FROM replies WHERE message_id = $1 ORDER BY date ASC",
+      [message_id]
+    );
+
+    res.json(replies.rows);
+  } catch (err) {
+    console.error(err);
+    res
+      .status(500)
+      .json({ error: "An error occurred while retrieving the replies" });
+  }
+});
+
+//gemini
 app.post("/gemini", async (req, res) => {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
