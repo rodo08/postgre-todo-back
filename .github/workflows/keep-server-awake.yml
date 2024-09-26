@@ -1,0 +1,29 @@
+name: Keep Server Awake
+
+# Ejecutar la acción cada 10 minutos
+on:
+  schedule:
+    - cron: "*/10 * * * *" # Cada 10 minutos
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install jq
+        run: sudo apt-get install jq
+
+      - name: Login to API
+        run: |
+          # Guardar la respuesta del login en una variable
+          RESPONSE=$(curl -X POST https://postgre-todo-back.onrender.com/login \
+            -H "Content-Type: application/json" \
+            -d '{"username": "${{ secrets.API_USERNAME }}", "password": "${{ secrets.API_PASSWORD }}"}')
+          # Extraer el token de la respuesta y guardarlo
+          TOKEN=$(echo $RESPONSE | jq -r '.token')
+
+      - name: Send request to keep the server awake
+        run: |
+          # Hacer una solicitud autenticada con el token
+          curl -X GET https://postgre-todo-back.onrender.com/wallmessages \
+            -H "Authorization: Bearer $TOKEN"
